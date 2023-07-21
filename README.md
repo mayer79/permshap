@@ -5,20 +5,18 @@
 [![CRAN status](http://www.r-pkg.org/badges/version/permshap)](https://cran.r-project.org/package=permshap)
 [![R-CMD-check](https://github.com/mayer79/permshap/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/mayer79/permshap/actions)
 [![Codecov test coverage](https://codecov.io/gh/mayer79/permshap/branch/main/graph/badge.svg)](https://app.codecov.io/gh/mayer79/permshap?branch=main)
-
-[![](https://cranlogs.r-pkg.org/badges/permshap)](https://cran.r-project.org/package=permshap) 
-[![](https://cranlogs.r-pkg.org/badges/grand-total/permshap?color=orange)](https://cran.r-project.org/package=permshap)
+[![Lifecycle: maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://www.tidyverse.org/lifecycle/#experimental)
 
 <!-- badges: end -->
 
 ## Overview
 
-This package offers an efficient implementation of Kernel SHAP, see [1] and [2]. For up to $p=8$ features, the resulting Kernel SHAP values are exact regarding the selected background data. For larger $p$, an almost exact hybrid algorithm involving iterative sampling is used by default.
+This package implements permutation SHAP. This first release is rather experimental and will work for up to ten features. To deal with more features, we will add approximate/hybrid algorithms later.
 
 The typical workflow to explain any model `object`:
 
 1. **Sample rows to explain:** Sample 500 to 2000 rows `X` to be explained. If the training dataset is small, simply use the full training data for this purpose. `X` should only contain feature columns.
-2. **Select background data:** Kernel SHAP requires a representative background dataset `bg_X` to calculate marginal means. For this purpose, set aside 50 to 500 rows from the training data.
+2. **Select background data:** Permutation SHAP requires a representative background dataset `bg_X` to calculate marginal means. For this purpose, set aside 50 to 500 rows from the training data.
 If the training data is small, use the full training data. In cases with a natural "off" value (like MNIST digits), this can also be a single row with all values set to the off value.
 3. **Crunch:** Use `permshap(object, X, bg_X, ...)` to calculate SHAP values. Runtime is proportional to `nrow(X)`, while memory consumption scales linearly in `nrow(bg_X)`.
 4. **Analyze:** Use {shapviz} to visualize the result.
@@ -26,7 +24,6 @@ If the training data is small, use the full training data. In cases with a natur
 **Remarks**
 
 - Multivariate predictions are handled at no additional computational cost.
-- By changing the defaults, the iterative pure sampling approach in [2] can be enforced.
 - Case weights are supported via the argument `bg_w`.
 
 ## Installation
@@ -66,7 +63,7 @@ X <- diamonds[sample(nrow(diamonds), 1000), xvars]
 # 2) Select background data
 bg_X <- diamonds[sample(nrow(diamonds), 200), ]
 
-# 3) Crunch SHAP values for all 1000 rows of X (~6 seconds)
+# 3) Crunch SHAP values for all 1000 rows of X (~11 seconds)
 system.time(
   shap_lm <- permshap(fit_lm, X, bg_X = bg_X)
 )
@@ -244,8 +241,8 @@ iris_wf <- workflow() %>%
 fit <- iris_wf %>%
   fit(iris)
   
-ks <- permshap(fit, iris[, -1], bg_X = iris)
-ks
+ps <- permshap(fit, iris[, -1], bg_X = iris)
+ps
 ```
 
 ### caret
@@ -285,9 +282,3 @@ s <- permshap(fit_lm, iris[-1], bg_X = iris)
 sv <- shapviz(s)
 sv_dependence(sv, "Species")
 ```
-
-## References
-
-[1] Scott M. Lundberg and Su-In Lee. A Unified Approach to Interpreting Model Predictions. Advances in Neural Information Processing Systems 30, 2017.
-
-[2] Ian Covert and Su-In Lee. Improving permshap: Practical Shapley Value Estimation Using Linear Regression. Proceedings of The 24th International Conference on Artificial Intelligence and Statistics, PMLR 130:3457-3465, 2021.

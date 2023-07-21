@@ -16,10 +16,10 @@ use_description(
   fields = list(
     Title = "Permutation SHAP",
     Version = "0.1.0",
-    Description = "Multivariate implementation of the permutation SHAP algorithm.
-    For models with up to eight features, the results are exact regarding the selected background data.
-    Otherwise, an almost exact hybrid algorithm involving iterative sampling is used.
-    The package plays well together with meta-learning packages like 'tidymodels', 'caret' or 'mlr3'.
+    Description = "Multivariate implementation of permutation SHAP for models with
+    up to ten features. The results are exact regarding the selected background data.
+    The package plays well together with meta-learning packages
+    like 'tidymodels', 'caret' or 'mlr3'.
     Visualizations can be done using the R package 'shapviz'.",
     `Authors@R` =
     "c(person('Michael', family='Mayer', role=c('aut', 'cre'), email='mayermichael79@gmail.com')
@@ -32,9 +32,6 @@ use_description(
 
 use_package("stats", "Imports")
 use_package("utils", "Imports")
-use_package("foreach", "Imports")
-
-use_package("doFuture", "Suggests")
 
 use_gpl_license(2)
 
@@ -57,7 +54,6 @@ use_readme_md()
 # If you want to add unit tests
 use_testthat()
 # use_test("permshap.R")
-# use_test("methods.R")
 
 # On top of NEWS.md, describe changes made to the package
 use_news_md()
@@ -101,9 +97,6 @@ install(upgrade = FALSE)
 if (FALSE) {
   check_win_devel()
   check_rhub()
-
-  # Takes long
-  revdepcheck::revdep_check(num_workers = 4L)
 
   # Wait until above checks are passed without relevant notes/warnings
   # then submit to CRAN

@@ -1,0 +1,170 @@
+#' Permutation SHAP
+#'
+#' Main function of the package. Calculates exact permutation SHAP values with
+#' respect to a background dataset.
+#'
+#' @param object Fitted model object.
+#' @param X \eqn{(n \times p)} matrix or `data.frame` with rows to be explained.
+#'   The columns should only represent model features, not the response
+#'   (but see `feature_names` on how to overrule this).
+#' @param bg_X Background data used to integrate out "switched off" features,
+#'   often a subset of the training data (typically 50 to 500 rows)
+#'   It should contain the same columns as `X`.
+#'   In cases with a natural "off" value (like MNIST digits),
+#'   this can also be a single row with all values set to the off value.
+#' @param pred_fun Prediction function of the form `function(object, X, ...)`,
+#'   providing \eqn{K \ge 1} numeric predictions per row. Its first argument
+#'   represents the model `object`, its second argument a data structure like `X`.
+#'   Additional (named) arguments are passed via `...`.
+#'   The default, [stats::predict()], will work in most cases.
+#' @param feature_names Optional vector of column names in `X` used to calculate
+#'   SHAP values. By default, this equals `colnames(X)`. Not supported if `X`
+#'   is a matrix.
+#' @param bg_w Optional vector of case weights for each row of `bg_X`.
+#' @param verbose Set to `FALSE` to suppress the progress bar.
+#' @param ... Additional arguments passed to `pred_fun(object, X, ...)`.
+#' @returns
+#'   An object of class "permshap" with the following components:
+#'   - `S`: \eqn{(n \times p)} matrix with SHAP values or, if the model output has
+#'     dimension \eqn{K > 1}, a list of \eqn{K} such matrices.
+#'   - `X`: Same as input argument `X`.
+#'   - `baseline`: Vector of length K representing the average prediction on the
+#'     background data.
+#' @export
+#' @examples
+#' # MODEL ONE: Linear regression
+#' fit <- lm(Sepal.Length ~ ., data = iris)
+#'
+#' # Select rows to explain (only feature columns)
+#' X_explain <- iris[1:2, -1]
+#'
+#' # Select small background dataset (could use all rows here because iris is small)
+#' set.seed(1)
+#' bg_X <- iris[sample(nrow(iris), 100), ]
+#'
+#' # Calculate SHAP values
+#' s <- permshap(fit, X_explain, bg_X = bg_X)
+#' s
+#'
+#' # MODEL TWO: Multi-response linear regression
+#' fit <- lm(as.matrix(iris[1:2]) ~ Petal.Length + Petal.Width + Species, data = iris)
+#' s <- permshap(fit, iris[1:4, 3:5], bg_X = bg_X)
+#' summary(s)
+#'
+#' # Non-feature columns can be dropped via 'feature_names'
+#' s <- permshap(
+#'   fit,
+#'   iris[1:4, ],
+#'   bg_X = bg_X,
+#'   feature_names = c("Petal.Length", "Petal.Width", "Species")
+#' )
+#' s
+permshap <- function(object, ...){
+  UseMethod("permshap")
+}
+
+#' @describeIn permshap Default permutation SHAP method.
+#' @export
+permshap.default <- function(object, X, bg_X, pred_fun = stats::predict,
+                             feature_names = colnames(X), bg_w = NULL,
+                             verbose = TRUE, ...) {
+  stopifnot(
+    is.matrix(X) || is.data.frame(X),
+    is.matrix(bg_X) || is.data.frame(bg_X),
+    is.matrix(X) == is.matrix(bg_X),
+    dim(X) >= 1L,
+    dim(bg_X) >= 1L,
+    !is.null(colnames(X)),
+    !is.null(colnames(bg_X)),
+    (p <- length(feature_names)) >= 1L,
+    all(feature_names %in% colnames(X)),
+    all(feature_names %in% colnames(bg_X)),  # not necessary, but clearer
+    all(colnames(X) %in% colnames(bg_X)),
+    is.function(pred_fun),
+    length(feature_names) <= 10L
+  )
+  n <- nrow(X)
+  bg_n <- nrow(bg_X)
+  if (!is.null(bg_w)) {
+    stopifnot(length(bg_w) == bg_n, all(bg_w >= 0), !all(bg_w == 0))
+  }
+  if (is.matrix(X) && !identical(colnames(X), feature_names)) {
+    stop("If X is a matrix, feature_names must equal colnames(X)")
+  }
+
+  # Drop unnecessary columns in bg_X. If X is matrix, also column order is relevant
+  # Predictions will never be applied directly to bg_X anymore
+  if (!identical(colnames(bg_X), feature_names)) {
+    bg_X <- bg_X[, feature_names, drop = FALSE]
+  }
+
+  # Precalculations that are identical for each row to be explained
+  precalc <- list(
+    Z = exact_Z(p, feature_names = feature_names),
+    bg_X_rep = bg_X[rep(seq_len(bg_n), times = 2^p), , drop = FALSE]
+  )
+
+  # Baseline
+  bg_preds <- align_pred(pred_fun(object, bg_X[, colnames(X), drop = FALSE], ...))
+  v0 <- wcolMeans(bg_preds, bg_w)            # Average pred of bg data: 1 x K
+
+  # Apply permutation SHAP to each row of X
+  if (verbose && n >= 2L) {
+    pb <- utils::txtProgressBar(1L, n, style = 3)
+  }
+  res <- vector("list", n)
+  for (i in seq_len(n)) {
+    res[[i]] <- permshap_one(
+      x = X[i, , drop = FALSE],
+      object = object,
+      pred_fun = pred_fun,
+      bg_w = bg_w,
+      precalc = precalc,
+      ...
+    )
+    if (verbose && n >= 2L) {
+      utils::setTxtProgressBar(pb, i)
+    }
+  }
+
+  out <- list(S = reorganize_list(res), X = X, baseline = as.vector(v0))
+  class(out) <- "permshap"
+  out
+}
+
+#' @describeIn permshap Permutation SHAP method for "ranger" models, see Readme for an example.
+#' @export
+permshap.ranger <- function(object, X, bg_X,
+                            pred_fun = function(m, X, ...) stats::predict(m, X, ...)$predictions,
+                            feature_names = colnames(X),
+                            bg_w = NULL, verbose = TRUE, ...) {
+  permshap.default(
+    object = object,
+    X = X,
+    bg_X = bg_X,
+    pred_fun = pred_fun,
+    feature_names = feature_names,
+    bg_w = bg_w,
+    verbose = verbose,
+    ...
+  )
+}
+
+#' @describeIn permshap Permutation SHAP method for "mlr3" models, see Readme for an example.
+#' @export
+permshap.Learner <- function(object, X, bg_X,
+                             pred_fun = function(m, X) m$predict_newdata(X)$response,
+                             feature_names = colnames(X),
+                             bg_w = NULL, verbose = TRUE, ...) {
+  permshap.default(
+    object = object,
+    X = X,
+    bg_X = bg_X,
+    pred_fun = pred_fun,
+    feature_names = feature_names,
+    bg_w = bg_w,
+    verbose = verbose,
+    ...
+  )
+}
+
