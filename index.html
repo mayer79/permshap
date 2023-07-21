@@ -86,7 +86,8 @@
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>This package crunches exact permutation SHAP values of any model with up to ten features. Later, the project will be extended by approximate algorithms to include models with more features as well.</p>
+<p>This package crunches exact permutation SHAP values of any model with up to ten features. Multi-output regressions and models with case-weights are handled at no additional cost.</p>
+<p>Later, the project will be extended by approximate algorithms to include models with more features as well.</p>
 <p>The typical workflow to explain any model <code>object</code>:</p>
 <ol style="list-style-type: decimal">
 <li>
@@ -98,11 +99,6 @@
 <li>
 <strong>Analyze:</strong> Use {shapviz} to visualize the result.</li>
 </ol>
-<p><strong>Remarks</strong></p>
-<ul>
-<li>Multivariate predictions are handled at no additional computational cost.</li>
-<li>Case weights are supported via the argument <code>bg_w</code>.</li>
-</ul>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
