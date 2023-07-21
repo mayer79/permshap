@@ -155,8 +155,6 @@ sv_importance(sv_nn, show_numbers = TRUE)
 sv_dependence(sv_nn, "clarity")
 ```
 
-![](man/figures/README-nn-imp.svg)
-
 ![](man/figures/README-nn-dep.svg)
 
 ## Parallel computing
