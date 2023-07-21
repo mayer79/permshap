@@ -71,6 +71,7 @@ use_github_links() # use this if this project is on github
 
 # Github actions
 use_github_action("check-standard")
+use_github_action("pkgdown")
 
 # Revdep
 use_revdep()
