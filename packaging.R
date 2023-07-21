@@ -30,13 +30,16 @@ use_description(
   roxygen = TRUE
 )
 
+use_package("foreach", "Imports")
 use_package("stats", "Imports")
 use_package("utils", "Imports")
+
+use_package("doFuture", "Suggests")
 
 use_gpl_license(2)
 
 # Your files that do not belong to the package itself (others are added by "use_* function")
-use_build_ignore(c("^packaging.R$", "[.]Rproj$", "^compare_with_python.R$",
+use_build_ignore(c("^packaging.R$", "[.]Rproj$",
                    "^cran-comments.md$", "^logo.png$"), escape = FALSE)
 
 # If your code uses the pipe operator %>%
@@ -66,13 +69,8 @@ use_cran_comments()
 
 use_github_links() # use this if this project is on github
 
-# Build website
-# use_pkgdown(config_file = "pkgdown/_pkgdown.yml")
-
 # Github actions
 use_github_action("check-standard")
-use_github_action("test-coverage")
-use_github_action("pkgdown")
 
 # Revdep
 use_revdep()
@@ -90,8 +88,6 @@ check(manual = TRUE, cran = TRUE)
 build()
 # build(binary = TRUE)
 install(upgrade = FALSE)
-
-# pkgdown::build_site(run_dont_run = TRUE)
 
 # Run only if package is public(!) and should go to CRAN
 if (FALSE) {

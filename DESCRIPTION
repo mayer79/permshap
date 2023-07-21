@@ -1,12 +1,13 @@
-Package: kernelshap
-Title: Kernel SHAP
-Version: 0.3.8
-Authors@R: c(
+Package: permshap
+Title: Permutation SHAP
+Version: 0.1.0
+Authors@R: 
     person("Michael", "Mayer", , "mayermichael79@gmail.com", role = c("aut", "cre"))
-  )
-Description: Implementation of ...  The package plays well together
-    with meta-learning packages like 'tidymodels', 'caret' or 'mlr3'.
-    Visualizations can be done using the R package 'shapviz'.
+Description: Multivariate implementation of permutation SHAP for models
+    with up to ten features. The results are exact regarding the selected
+    background data.  The package plays well together with meta-learning
+    packages like 'tidymodels', 'caret' or 'mlr3'.  Visualizations can be
+    done using the R package 'shapviz'.
 License: GPL (>= 2)
 Depends: 
     R (>= 3.2.0)
@@ -21,5 +22,5 @@ Suggests:
     doFuture,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
-URL: https://github.com/ModelOriented/kernelshap
-BugReports: https://github.com/ModelOriented/kernelshap/issues
+URL: https://github.com/mayer79/permshap
+BugReports: https://github.com/mayer79/permshap/issues

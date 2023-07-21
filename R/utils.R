@@ -1,3 +1,13 @@
+shapley_weights <- function(p, ell) {
+  1 / choose(p, ell) / (p - ell)
+}
+
+exact_Z <- function(p, feature_names) {
+  Z <- as.matrix(do.call(expand.grid, replicate(p, 0:1, simplify = FALSE)))
+  colnames(Z) <- feature_names
+  Z
+}
+
 permshap_one <- function(x, object, pred_fun, bg_w, precalc, ...) {
   vz <- get_vz(                                                          #  (m_ex x K)
     X = x[rep(1L, times = nrow(precalc[["bg_X_rep"]])), , drop = FALSE], #  (m_ex*n_bg x p)
@@ -8,7 +18,7 @@ permshap_one <- function(x, object, pred_fun, bg_w, precalc, ...) {
     bg_w = bg_w,
     ...
   )
-
+  rownames(vz) <- precalc[["Z_code"]]
   shapley_formula(precalc[["Z"]], vz)
 }
 
@@ -23,7 +33,8 @@ shapley_formula <- function(Z, vz) {
     Z0[, v] <- 0L
     s0 <- apply(Z0, 1L, FUN = paste0, collapse = "")
     vz0 <- vz[s0, , drop = FALSE]
-    out[v, ] <- wcolMeans(vz1 - vz0, w = shapley_weights(p, rowSums(Z0)))
+    w <- shapley_weights(ncol(Z), rowSums(Z0))
+    out[v, ] <- wcolMeans(vz1 - vz0, w = w)
   }
   out
 }
@@ -32,6 +43,7 @@ shapley_formula <- function(Z, vz) {
 get_vz <- function(X, bg, Z, object, pred_fun, bg_w, ...) {
   m <- nrow(Z)
   not_Z <- !Z
+  rownames(not_Z) <- NULL
   n_bg <- nrow(bg) / m   # because bg was replicated m times
 
   # Replicate not_Z, so that X, bg, not_Z are all of dimension (m*n_bg x p)
@@ -112,12 +124,8 @@ align_pred <- function(x) {
   x
 }
 
-shapley_weights <- function(p, ell) {
-  1 / choose(p, ell) / (p - ell)
-}
-
-exact_Z <- function(p, feature_names) {
-  Z <- as.matrix(do.call(expand.grid, replicate(p, 0:1, simplify = FALSE)))
-  dimnames(Z) <- list(apply(Z, 1L, paste0, collapse = ""), feature_names)
-  Z
+# Helper function in print() and summary()
+# x is either a matrix or a list of matrices
+head_list <- function(x, n = 6L) {
+  if (!is.list(x)) utils::head(x, n) else lapply(x, utils::head, n)
 }

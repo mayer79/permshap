@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/reference/test_package.html#special-files
 
 library(testthat)
-library(kernelshap)
+library(permshap)
 
-test_check("kernelshap")
+test_check("permshap")

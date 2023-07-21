@@ -1,17 +1,15 @@
-# permshap (WIP - NOT IMPLEMENTED YET) <a href='https://github.com/mayer79/permshap'><img src='man/figures/logo.png' align="right" height="139"/></a>
+# permshap <a href='https://github.com/mayer79/permshap'><img src='man/figures/logo.png' align="right" height="139"/></a>
 
 <!-- badges: start -->
 
-[![CRAN status](http://www.r-pkg.org/badges/version/permshap)](https://cran.r-project.org/package=permshap)
 [![R-CMD-check](https://github.com/mayer79/permshap/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/mayer79/permshap/actions)
-[![Codecov test coverage](https://codecov.io/gh/mayer79/permshap/branch/main/graph/badge.svg)](https://app.codecov.io/gh/mayer79/permshap?branch=main)
-[![Lifecycle: maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://www.tidyverse.org/lifecycle/#experimental)
+[![Lifecycle: maturing](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
 
 <!-- badges: end -->
 
 ## Overview
 
-This package implements permutation SHAP. This first release is rather experimental and will work for up to ten features. To deal with more features, we will add approximate/hybrid algorithms later.
+This package crunches exact permutation SHAP values of any model with up to ten features. Later, the project will be extended by approximate algorithms to include models with more features as well.
 
 The typical workflow to explain any model `object`:
 
@@ -29,10 +27,6 @@ If the training data is small, use the full training data. In cases with a natur
 ## Installation
 
 ```r
-# From CRAN
-install.packages("permshap")
-
-# Or the development version:
 devtools::install_github("mayer79/permshap")
 ```
 
@@ -63,7 +57,7 @@ X <- diamonds[sample(nrow(diamonds), 1000), xvars]
 # 2) Select background data
 bg_X <- diamonds[sample(nrow(diamonds), 200), ]
 
-# 3) Crunch SHAP values for all 1000 rows of X (~11 seconds)
+# 3) Crunch SHAP values for all 1000 rows of X (~10 seconds)
 system.time(
   shap_lm <- permshap(fit_lm, X, bg_X = bg_X)
 )
@@ -74,8 +68,8 @@ shap_lm
 # [1,]  1.2692479  0.1081900 -0.07847065 0.004630899
 # [2,] -0.4499226 -0.1111329  0.11832292 0.026503850
 
-# 4) Analyze
-sv_lm <- shapviz(shap_lm)
+# 4) Analyze ({shapviz} will soon get a permshap connector to simplify this)
+sv_lm <- with(shap_lm, shapviz(S, X, baseline))
 sv_importance(sv_lm)
 sv_dependence(sv_lm, "log_carat", color_var = NULL)
 ```
@@ -90,12 +84,8 @@ We can also explain a specific prediction instead of the full model:
 single_row <- diamonds[5000, xvars]
 
 fit_lm |>
-  permshap(single_row, bg_X = bg_X) |> 
-  shapviz() |>
-  sv_waterfall()
+  permshap(single_row, bg_X = bg_X)
 ```
-
-![](man/figures/README-lm-waterfall.svg)
 
 ### Random forest
 
@@ -116,15 +106,15 @@ shap_rf
 
 # SHAP values of first 2 observations:
 #       log_carat     clarity      color         cut
-# [1,]  1.1987785  0.09578879 -0.1397765 0.002761832
-# [2,] -0.4969451 -0.12006207  0.1050928 0.029680717
+# [1,]  1.1986635  0.09557752 -0.1385312 0.001842753
+# [2,] -0.4970758 -0.12034448  0.1051721 0.030014490
 
-sv_rf <- shapviz(shap_rf)
+sv_rf <- with(shap_rf, shapviz(S, X, baseline))
 sv_importance(sv_rf, kind = "bee", show_numbers = TRUE)
 sv_dependence(sv_rf, "log_carat")
 ```
 
-![](man/figures/README-rf-imp.jpeg)
+![](man/figures/README-rf-imp.png)
 
 ![](man/figures/README-rf-dep.svg)
 
@@ -159,10 +149,11 @@ nn |>
     callbacks = cb
   )
 
-pred_fun <- function(mod, X) predict(mod, data.matrix(X), batch_size = 10000)
+pred_fun <- function(mod, X) 
+  predict(mod, data.matrix(X), batch_size = 10000, verbose = FALSE)
 shap_nn <- permshap(nn, X, bg_X = bg_X, pred_fun = pred_fun)
 
-sv_nn <- shapviz(shap_nn)
+sv_nn <- with(shap_nn, shapviz(S, X, baseline))
 sv_importance(sv_nn, show_numbers = TRUE)
 sv_dependence(sv_nn, "clarity")
 ```
@@ -185,7 +176,7 @@ registerDoFuture()
 plan(multisession, workers = 4)  # Windows
 # plan(multicore, workers = 4)   # Linux, macOS, Solaris
 
-# ~3 seconds on second run
+# ~4 seconds
 system.time(
   s <- permshap(fit_lm, X, bg_X = bg_X, parallel = TRUE)
 )
@@ -261,8 +252,7 @@ fit <- train(
 )
 
 s <- permshap(fit, iris[, -1], predict, bg_X = iris)
-sv <- shapviz(s)
-sv_waterfall(sv, 1)
+s
 ```
 
 ### mlr3
@@ -279,6 +269,5 @@ task_iris <- TaskRegr$new(id = "iris", backend = iris, target = "Sepal.Length")
 fit_lm <- lrn("regr.lm")
 fit_lm$train(task_iris)
 s <- permshap(fit_lm, iris[-1], bg_X = iris)
-sv <- shapviz(s)
-sv_dependence(sv, "Species")
+s
 ```

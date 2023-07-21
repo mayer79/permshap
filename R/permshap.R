@@ -3,6 +3,8 @@
 #' Main function of the package. Calculates exact permutation SHAP values with
 #' respect to a background dataset.
 #'
+#' @importFrom foreach %dopar%
+#'
 #' @param object Fitted model object.
 #' @param X \eqn{(n \times p)} matrix or `data.frame` with rows to be explained.
 #'   The columns should only represent model features, not the response
@@ -21,6 +23,13 @@
 #'   SHAP values. By default, this equals `colnames(X)`. Not supported if `X`
 #'   is a matrix.
 #' @param bg_w Optional vector of case weights for each row of `bg_X`.
+#' @param parallel If `TRUE`, use parallel [foreach::foreach()] to loop over rows
+#'   to be explained. Must register backend beforehand, e.g., via {doFuture} package,
+#'   see README for an example. Parallelization automatically disables the progress bar.
+#' @param parallel_args Named list of arguments passed to [foreach::foreach()].
+#'   Ideally, this is `NULL` (default). Only relevant if `parallel = TRUE`.
+#'   Example on Windows: if `object` is a GAM fitted with package {mgcv},
+#'   then one might need to set `parallel_args = list(.packages = "mgcv")`.
 #' @param verbose Set to `FALSE` to suppress the progress bar.
 #' @param ... Additional arguments passed to `pred_fun(object, X, ...)`.
 #' @returns
@@ -49,7 +58,7 @@
 #' # MODEL TWO: Multi-response linear regression
 #' fit <- lm(as.matrix(iris[1:2]) ~ Petal.Length + Petal.Width + Species, data = iris)
 #' s <- permshap(fit, iris[1:4, 3:5], bg_X = bg_X)
-#' summary(s)
+#' s
 #'
 #' # Non-feature columns can be dropped via 'feature_names'
 #' s <- permshap(
@@ -67,6 +76,7 @@ permshap <- function(object, ...){
 #' @export
 permshap.default <- function(object, X, bg_X, pred_fun = stats::predict,
                              feature_names = colnames(X), bg_w = NULL,
+                             parallel = FALSE, parallel_args = NULL,
                              verbose = TRUE, ...) {
   stopifnot(
     is.matrix(X) || is.data.frame(X),
@@ -92,6 +102,10 @@ permshap.default <- function(object, X, bg_X, pred_fun = stats::predict,
     stop("If X is a matrix, feature_names must equal colnames(X)")
   }
 
+  # Baseline
+  bg_preds <- align_pred(pred_fun(object, bg_X[, colnames(X), drop = FALSE], ...))
+  v0 <- wcolMeans(bg_preds, bg_w)            # Average pred of bg data: 1 x K
+
   # Drop unnecessary columns in bg_X. If X is matrix, also column order is relevant
   # Predictions will never be applied directly to bg_X anymore
   if (!identical(colnames(bg_X), feature_names)) {
@@ -99,22 +113,24 @@ permshap.default <- function(object, X, bg_X, pred_fun = stats::predict,
   }
 
   # Precalculations that are identical for each row to be explained
+  Z <- exact_Z(p, feature_names = feature_names)
+  m_exact <- nrow(Z)
   precalc <- list(
-    Z = exact_Z(p, feature_names = feature_names),
-    bg_X_rep = bg_X[rep(seq_len(bg_n), times = 2^p), , drop = FALSE]
+    Z = Z,
+    Z_code = apply(Z, 1L, paste0, collapse = ""),
+    bg_X_rep = bg_X[rep(seq_len(bg_n), times = m_exact), , drop = FALSE]
   )
 
-  # Baseline
-  bg_preds <- align_pred(pred_fun(object, bg_X[, colnames(X), drop = FALSE], ...))
-  v0 <- wcolMeans(bg_preds, bg_w)            # Average pred of bg data: 1 x K
+  if (m_exact * bg_n > 2e5) {
+    warning("\nPredictions on large data sets with ", m_exact, "x", bg_n,
+            " observations are being done.\n",
+            "Consider reducing the computational burden (e.g. use smaller X_bg)")
+  }
 
   # Apply permutation SHAP to each row of X
-  if (verbose && n >= 2L) {
-    pb <- utils::txtProgressBar(1L, n, style = 3)
-  }
-  res <- vector("list", n)
-  for (i in seq_len(n)) {
-    res[[i]] <- permshap_one(
+  if (isTRUE(parallel)) {
+    parallel_args <- c(list(i = seq_len(n)), parallel_args)
+    res <- do.call(foreach::foreach, parallel_args) %dopar% permshap_one(
       x = X[i, , drop = FALSE],
       object = object,
       pred_fun = pred_fun,
@@ -122,11 +138,25 @@ permshap.default <- function(object, X, bg_X, pred_fun = stats::predict,
       precalc = precalc,
       ...
     )
+  } else {
     if (verbose && n >= 2L) {
-      utils::setTxtProgressBar(pb, i)
+      pb <- utils::txtProgressBar(1L, n, style = 3)
+    }
+    res <- vector("list", n)
+    for (i in seq_len(n)) {
+      res[[i]] <- permshap_one(
+        x = X[i, , drop = FALSE],
+        object = object,
+        pred_fun = pred_fun,
+        bg_w = bg_w,
+        precalc = precalc,
+        ...
+      )
+      if (verbose && n >= 2L) {
+        utils::setTxtProgressBar(pb, i)
+      }
     }
   }
-
   out <- list(S = reorganize_list(res), X = X, baseline = as.vector(v0))
   class(out) <- "permshap"
   out
@@ -137,7 +167,8 @@ permshap.default <- function(object, X, bg_X, pred_fun = stats::predict,
 permshap.ranger <- function(object, X, bg_X,
                             pred_fun = function(m, X, ...) stats::predict(m, X, ...)$predictions,
                             feature_names = colnames(X),
-                            bg_w = NULL, verbose = TRUE, ...) {
+                            bg_w = NULL, parallel = FALSE, parallel_args = NULL,
+                            verbose = TRUE, ...) {
   permshap.default(
     object = object,
     X = X,
@@ -145,6 +176,8 @@ permshap.ranger <- function(object, X, bg_X,
     pred_fun = pred_fun,
     feature_names = feature_names,
     bg_w = bg_w,
+    parallel = parallel,
+    parallel_args = parallel_args,
     verbose = verbose,
     ...
   )
@@ -155,7 +188,8 @@ permshap.ranger <- function(object, X, bg_X,
 permshap.Learner <- function(object, X, bg_X,
                              pred_fun = function(m, X) m$predict_newdata(X)$response,
                              feature_names = colnames(X),
-                             bg_w = NULL, verbose = TRUE, ...) {
+                             bg_w = NULL, parallel = FALSE, parallel_args = NULL,
+                             verbose = TRUE, ...) {
   permshap.default(
     object = object,
     X = X,
@@ -163,6 +197,8 @@ permshap.Learner <- function(object, X, bg_X,
     pred_fun = pred_fun,
     feature_names = feature_names,
     bg_w = bg_w,
+    parallel = parallel,
+    parallel_args = parallel_args,
     verbose = verbose,
     ...
   )

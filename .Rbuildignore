@@ -1,16 +1,11 @@
 ^LICENSE\.md$
 ^packaging.R$
 [.]Rproj$
-^cran-comments.md$
 ^logo.png$
 ^cran-comments\.md$
 ^.*\.Rproj$
 ^\.Rproj\.user$
-^compare_with_python.R$
 ^CRAN-SUBMISSION$
-^_pkgdown\.yml$
 ^docs$
-^pkgdown$
-^pkgdown/_pkgdown\.yml$
 ^\.github$
-^revdep$
+
