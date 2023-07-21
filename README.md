@@ -9,7 +9,9 @@
 
 ## Overview
 
-This package crunches exact permutation SHAP values of any model with up to ten features. Later, the project will be extended by approximate algorithms to include models with more features as well.
+This package crunches exact permutation SHAP values of any model with up to ten features. Multi-output regressions and models with case-weights are handled at no additional cost.
+
+Later, the project will be extended by approximate algorithms to include models with more features as well.
 
 The typical workflow to explain any model `object`:
 
@@ -18,11 +20,6 @@ The typical workflow to explain any model `object`:
 If the training data is small, use the full training data. In cases with a natural "off" value (like MNIST digits), this can also be a single row with all values set to the off value.
 3. **Crunch:** Use `permshap(object, X, bg_X, ...)` to calculate SHAP values. Runtime is proportional to `nrow(X)`, while memory consumption scales linearly in `nrow(bg_X)`.
 4. **Analyze:** Use {shapviz} to visualize the result.
-
-**Remarks**
-
-- Multivariate predictions are handled at no additional computational cost.
-- Case weights are supported via the argument `bg_w`.
 
 ## Installation
 
