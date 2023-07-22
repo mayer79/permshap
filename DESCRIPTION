@@ -4,7 +4,7 @@ Version: 0.1.0
 Authors@R: 
     person("Michael", "Mayer", , "mayermichael79@gmail.com", role = c("aut", "cre"))
 Description: Multivariate implementation of permutation SHAP for models
-    with up to ten features. The results are exact regarding the selected
+    with up to 16 features. The results are exact regarding the selected
     background data.  The package plays well together with meta-learning
     packages like 'tidymodels', 'caret' or 'mlr3'.  Visualizations can be
     done using the R package 'shapviz'.

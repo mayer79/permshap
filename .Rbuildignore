@@ -1,5 +1,5 @@
 ^LICENSE\.md$
-^packaging.R$
+^packaging\.R$
 [.]Rproj$
 ^logo.png$
 ^cran-comments\.md$
@@ -8,4 +8,4 @@
 ^CRAN-SUBMISSION$
 ^docs$
 ^\.github$
-
+^compare_with_python\.R$

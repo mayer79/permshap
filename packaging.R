@@ -17,7 +17,7 @@ use_description(
     Title = "Permutation SHAP",
     Version = "0.1.0",
     Description = "Multivariate implementation of permutation SHAP for models with
-    up to ten features. The results are exact regarding the selected background data.
+    up to 16 features. The results are exact regarding the selected background data.
     The package plays well together with meta-learning packages
     like 'tidymodels', 'caret' or 'mlr3'.
     Visualizations can be done using the R package 'shapviz'.",

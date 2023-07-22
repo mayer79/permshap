@@ -9,9 +9,9 @@
 
 ## Overview
 
-This package crunches exact permutation SHAP values of any model with up to ten features. Multi-output regressions and models with case-weights are handled at no additional cost.
+This package crunches exact permutation SHAP values of any model with up to 16 features. Multi-output regressions and models with case-weights are handled at no additional cost.
 
-Later, the project will be extended by approximate algorithms to include models with more features as well.
+Later, we will extend the project to more features and approximate algorithms.
 
 The typical workflow to explain any model `object`:
 
@@ -65,8 +65,8 @@ shap_lm
 # [1,]  1.2692479  0.1081900 -0.07847065 0.004630899
 # [2,] -0.4499226 -0.1111329  0.11832292 0.026503850
 
-# 4) Analyze ({shapviz} will soon get a permshap connector to simplify this)
-sv_lm <- with(shap_lm, shapviz(S, X, baseline))
+# 4) Analyze with shapviz >= 0.9.2 (Github install)
+sv_lm <- shapviz(shap_lm)
 sv_importance(sv_lm)
 sv_dependence(sv_lm, "log_carat", color_var = NULL)
 ```
@@ -106,7 +106,7 @@ shap_rf
 # [1,]  1.1986635  0.09557752 -0.1385312 0.001842753
 # [2,] -0.4970758 -0.12034448  0.1051721 0.030014490
 
-sv_rf <- with(shap_rf, shapviz(S, X, baseline))
+sv_rf <- shapviz(shap_rf)
 sv_importance(sv_rf, kind = "bee", show_numbers = TRUE)
 sv_dependence(sv_rf, "log_carat")
 ```
@@ -150,7 +150,7 @@ pred_fun <- function(mod, X)
   predict(mod, data.matrix(X), batch_size = 10000, verbose = FALSE)
 shap_nn <- permshap(nn, X, bg_X = bg_X, pred_fun = pred_fun)
 
-sv_nn <- with(shap_nn, shapviz(S, X, baseline))
+sv_nn <- shapviz(shap_nn)
 sv_importance(sv_nn, show_numbers = TRUE)
 sv_dependence(sv_nn, "clarity")
 ```
