@@ -91,7 +91,7 @@ permshap.default <- function(object, X, bg_X, pred_fun = stats::predict,
     all(feature_names %in% colnames(bg_X)),  # not necessary, but clearer
     all(colnames(X) %in% colnames(bg_X)),
     is.function(pred_fun),
-    length(feature_names) <= 10L
+    length(feature_names) <= 16L
   )
   n <- nrow(X)
   bg_n <- nrow(bg_X)
