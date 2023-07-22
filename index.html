@@ -19,7 +19,7 @@
 <!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- pkgdown --><link href="pkgdown.css" rel="stylesheet">
 <script src="pkgdown.js"></script><meta property="og:title" content="Permutation SHAP">
 <meta property="og:description" content="Multivariate implementation of permutation SHAP for models
-    with up to ten features. The results are exact regarding the selected
+    with up to 16 features. The results are exact regarding the selected
     background data.  The package plays well together with meta-learning
     packages like tidymodels, caret or mlr3.  Visualizations can be
     done using the R package shapviz.">
@@ -86,8 +86,8 @@
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>This package crunches exact permutation SHAP values of any model with up to ten features. Multi-output regressions and models with case-weights are handled at no additional cost.</p>
-<p>Later, the project will be extended by approximate algorithms to include models with more features as well.</p>
+<p>This package crunches exact permutation SHAP values of any model with up to 16 features. Multi-output regressions and models with case-weights are handled at no additional cost.</p>
+<p>Later, we will extend the project to more features and approximate algorithms.</p>
 <p>The typical workflow to explain any model <code>object</code>:</p>
 <ol style="list-style-type: decimal">
 <li>
@@ -145,8 +145,8 @@
 <span><span class="co"># [1,]  1.2692479  0.1081900 -0.07847065 0.004630899</span></span>
 <span><span class="co"># [2,] -0.4499226 -0.1111329  0.11832292 0.026503850</span></span>
 <span></span>
-<span><span class="co"># 4) Analyze ({shapviz} will soon get a permshap connector to simplify this)</span></span>
-<span><span class="va">sv_lm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">shap_lm</span>, <span class="fu">shapviz</span><span class="op">(</span><span class="va">S</span>, <span class="va">X</span>, <span class="va">baseline</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co"># 4) Analyze with shapviz &gt;= 0.9.2 (Github install)</span></span>
+<span><span class="va">sv_lm</span> <span class="op">&lt;-</span> <span class="fu">shapviz</span><span class="op">(</span><span class="va">shap_lm</span><span class="op">)</span></span>
 <span><span class="fu">sv_importance</span><span class="op">(</span><span class="va">sv_lm</span><span class="op">)</span></span>
 <span><span class="fu">sv_dependence</span><span class="op">(</span><span class="va">sv_lm</span>, <span class="st">"log_carat"</span>, color_var <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
 <p><img src="reference/figures/README-lm-imp.svg"></p>
@@ -180,7 +180,7 @@
 <span><span class="co"># [1,]  1.1986635  0.09557752 -0.1385312 0.001842753</span></span>
 <span><span class="co"># [2,] -0.4970758 -0.12034448  0.1051721 0.030014490</span></span>
 <span></span>
-<span><span class="va">sv_rf</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">shap_rf</span>, <span class="fu">shapviz</span><span class="op">(</span><span class="va">S</span>, <span class="va">X</span>, <span class="va">baseline</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">sv_rf</span> <span class="op">&lt;-</span> <span class="fu">shapviz</span><span class="op">(</span><span class="va">shap_rf</span><span class="op">)</span></span>
 <span><span class="fu">sv_importance</span><span class="op">(</span><span class="va">sv_rf</span>, kind <span class="op">=</span> <span class="st">"bee"</span>, show_numbers <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu">sv_dependence</span><span class="op">(</span><span class="va">sv_rf</span>, <span class="st">"log_carat"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="reference/figures/README-rf-imp.png"></p>
@@ -221,7 +221,7 @@
 <span>  <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">mod</span>, <span class="fu"><a href="https://rdrr.io/r/base/data.matrix.html" class="external-link">data.matrix</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span>, batch_size <span class="op">=</span> <span class="fl">10000</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">shap_nn</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/permshap.html">permshap</a></span><span class="op">(</span><span class="va">nn</span>, <span class="va">X</span>, bg_X <span class="op">=</span> <span class="va">bg_X</span>, pred_fun <span class="op">=</span> <span class="va">pred_fun</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">sv_nn</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">shap_nn</span>, <span class="fu">shapviz</span><span class="op">(</span><span class="va">S</span>, <span class="va">X</span>, <span class="va">baseline</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">sv_nn</span> <span class="op">&lt;-</span> <span class="fu">shapviz</span><span class="op">(</span><span class="va">shap_nn</span><span class="op">)</span></span>
 <span><span class="fu">sv_importance</span><span class="op">(</span><span class="va">sv_nn</span>, show_numbers <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu">sv_dependence</span><span class="op">(</span><span class="va">sv_nn</span>, <span class="st">"clarity"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="reference/figures/README-nn-dep.svg"></p>
