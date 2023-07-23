@@ -12,6 +12,7 @@
 This package crunches exact permutation SHAP values of any model with up to 16 features. Multi-output regressions and models with case-weights are handled at no additional cost.
 
 Later, we will extend the project to more features and approximate algorithms.
+The project emerged from a fork of our related project [kernelshap](https://github.com/ModelOriented/kernelshap).
 
 The typical workflow to explain any model `object`:
 

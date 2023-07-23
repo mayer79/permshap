@@ -1,6 +1,6 @@
 #' Print Method
 #'
-#' Prints the first two rows of the matrix (or matrices) of SHAP values.
+#' Prints the first `n` rows of the matrix (or matrices) of SHAP values.
 #'
 #' @param x An object of class "permshap".
 #' @param n Maximum number of rows of SHAP values to print.
@@ -14,7 +14,7 @@
 #' @seealso [permshap()]
 print.permshap <- function(x, n = 2L, ...) {
   cat("SHAP values of first", n, "observations:\n")
-  print(head_list(getElement(x, "S"), n = n))
+  print(head_list(x[["S"]], n = n))
   invisible(x)
 }
 
@@ -26,7 +26,7 @@ print.permshap <- function(x, n = 2L, ...) {
 #' @returns `TRUE` if `object` is of class "permshap", and `FALSE` otherwise.
 #' @export
 #' @examples
-#' fit <- stats::lm(Sepal.Length ~ ., data = iris)
+#' fit <- lm(Sepal.Length ~ ., data = iris)
 #' s <- permshap(fit, iris[1:2, -1], bg_X = iris[-1])
 #' is.permshap(s)
 #' is.permshap("a")
