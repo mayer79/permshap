@@ -117,7 +117,7 @@ permshap.default <- function(object, X, bg_X, pred_fun = stats::predict,
   m_exact <- nrow(Z)
   precalc <- list(
     Z = Z,
-    Z_code = apply(Z, 1L, paste0, collapse = ""),
+    Z_code = rowpaste(Z),
     bg_X_rep = bg_X[rep(seq_len(bg_n), times = m_exact), , drop = FALSE]
   )
 
