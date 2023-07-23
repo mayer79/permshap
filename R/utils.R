@@ -1,13 +1,44 @@
+#' Shapley Weights
+#'
+#' Weights used in Shapley's formula. Vectorized over `p` and/or `ell`.
+#'
+#' @noRd
+#' @keywords internal
+#'
+#' @param p Number of features.
+#' @param ell Size of subset (i.e., sum of z).
+#' @returns Shapley weight.
 shapley_weights <- function(p, ell) {
   1 / choose(p, ell) / (p - ell)
 }
 
+#' All on-off Vectors
+#'
+#' Creates matrix of all on-off vectors of length `p`. Adapted from {kernelshap}.
+#'
+#' @noRd
+#' @keywords internal
+#'
+#' @param p Number of features.
+#' @param feature_names Feature names.
+#' @returns (2^p x p) matrix of all on-off vectors.
 exact_Z <- function(p, feature_names) {
   Z <- as.matrix(do.call(expand.grid, replicate(p, 0:1, simplify = FALSE)))
   colnames(Z) <- feature_names
   Z
 }
 
+#' SHAP values for one row
+#'
+#' Calculates permutation SHAP for a single row.
+#'
+#' @noRd
+#' @keywords internal
+#'
+#' @inheritParams permshap
+#' @param x A single row to be explained.
+#' @param precalc A list with precalculated values that are identical for all rows.
+#' @return A (p x K) matrix of SHAP values.
 permshap_one <- function(x, object, pred_fun, bg_w, precalc, ...) {
   vz <- get_vz(                                                          #  (m_ex x K)
     X = x[rep(1L, times = nrow(precalc[["bg_X_rep"]])), , drop = FALSE], #  (m_ex*n_bg x p)
@@ -22,6 +53,16 @@ permshap_one <- function(x, object, pred_fun, bg_w, precalc, ...) {
   shapley_formula(precalc[["Z"]], vz)
 }
 
+#' Shapley's formula
+#'
+#' Evaluates Shapley's formula for each feature.
+#'
+#' @noRd
+#' @keywords internal
+#'
+#' @param Z Matrix of on-off row vectors.
+#' @param vz Named vector of vz values.
+#' @returns SHAP values organized as (p x K) matrix.
 shapley_formula <- function(Z, vz) {
   out <- matrix(
     nrow = ncol(Z), ncol = ncol(vz), dimnames = list(colnames(Z), colnames(vz))
@@ -31,7 +72,7 @@ shapley_formula <- function(Z, vz) {
     vz1 <- vz[s1, , drop = FALSE]
     Z0 <- Z[s1, , drop = FALSE]
     Z0[, v] <- 0L
-    s0 <- apply(Z0, 1L, FUN = paste0, collapse = "")
+    s0 <- rowpaste(Z0)
     vz0 <- vz[s0, , drop = FALSE]
     w <- shapley_weights(ncol(Z), rowSums(Z0))
     out[v, ] <- wcolMeans(vz1 - vz0, w = w)
@@ -39,7 +80,19 @@ shapley_formula <- function(Z, vz) {
   out
 }
 
-# Calculates all vz of an iteration by a single call to predict()
+#' Masker
+#'
+#' For each on-off vector (rows in `Z`), the (weighted) average prediction is returned.
+#' Originally implemented in {kernelshap}.
+#'
+#' @noRd
+#' @keywords internal
+#'
+#' @inheritParams permshap
+#' @param X Replicated row to be explained.
+#' @param bg Replicated background data.
+#' @param Z Matrix with on-off values.
+#' @returns Matrix with vz values.
 get_vz <- function(X, bg, Z, object, pred_fun, bg_w, ...) {
   m <- nrow(Z)
   not_Z <- !Z
@@ -72,7 +125,17 @@ get_vz <- function(X, bg, Z, object, pred_fun, bg_w, ...) {
   out
 }
 
-# Weighted colMeans(). Always returns a (1 x ncol(x)) matrix
+#' Weighted colMeans
+#'
+#' Weighted version of [colMeans()]. Originally implemented in {kernelshap}.
+#'
+#' @noRd
+#' @keywords internal
+#'
+#' @param x A matrix.
+#' @param w Optional vector of case weights.
+#' @param ... Further arguments passed to [colMeans()].
+#' @returns Column means of `x` (organized as matrix with one row).
 wcolMeans <- function(x, w = NULL, ...) {
   if (!is.matrix(x)) {
     stop("x must be a matrix")
@@ -88,7 +151,15 @@ wcolMeans <- function(x, w = NULL, ...) {
   matrix(out, nrow = 1L)
 }
 
-# Binds list of matrices along new first axis
+#' Combine Matrices
+#'
+#' Binds list of matrices along new first axis. Originally implemented in {kernelshap}.
+#'
+#' @noRd
+#' @keywords internal
+#'
+#' @param a List of n (p x K) matrices.
+#' @returns A (n x p x K) array.
 abind1 <- function(a) {
   out <- array(
     dim = c(length(a), dim(a[[1L]])),
@@ -100,7 +171,16 @@ abind1 <- function(a) {
   out
 }
 
-# Turn list of n (p x K) matrices into list of K (n x p) matrices. Reduce if K = 1.
+#' Reorganize List
+#'
+#' Turns list of n (p x K) matrices into list of K (n x p) matrices. Reduce if K = 1.
+#' Originally implemented in {kernelshap}.
+#'
+#' @noRd
+#' @keywords internal
+#'
+#' @param alist List of n (p x K) matrices.
+#' @returns List of K (n x p) matrices.
 reorganize_list <- function(alist) {
   if (!is.list(alist)) {
     stop("alist must be a list")
@@ -113,7 +193,15 @@ reorganize_list <- function(alist) {
   lapply(out, as.matrix)
 }
 
-# Turns predictions into matrix
+#' Aligns Predictions
+#'
+#' Turns predictions into matrix. Originally implemented in {hstats}.
+#'
+#' @noRd
+#' @keywords internal
+#'
+#' @param x Object representing model predictions.
+#' @returns Like `x`, but converted to matrix.
 align_pred <- function(x) {
   if (!is.matrix(x)) {
     x <- as.matrix(x)
@@ -124,8 +212,31 @@ align_pred <- function(x) {
   x
 }
 
-# Helper function in print() and summary()
-# x is either a matrix or a list of matrices
+#' head of List
+#'
+#' Shows top n rows of each element in the input list.
+#' Originally implemented in {kernelshap}.
+#'
+#' @noRd
+#' @keywords internal
+#'
+#' @param x A list or a matrix-like.
+#' @param n Number of rows to show.
+#' @returns First rows of each element in the input list.
 head_list <- function(x, n = 6L) {
   if (!is.list(x)) utils::head(x, n) else lapply(x, utils::head, n)
 }
+
+#' Rowwise Paste
+#'
+#' Fast version of `apply(Z, 1L, FUN = paste0, collapse = "")`.
+#'
+#' @noRd
+#' @keywords internal
+#'
+#' @param Z A matrix.
+#' @returns A vector.
+rowpaste <- function(Z) {
+  do.call(paste0, asplit(Z, 2L))
+}
+
