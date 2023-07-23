@@ -6,8 +6,8 @@
 #' @keywords internal
 #'
 #' @param p Number of features.
-#' @param ell Size of subset (i.e., sum of z).
-#' @returns Shapley weight.
+#' @param ell Size of subset (i.e., sum of on-off vector z).
+#' @returns Shapley weights.
 shapley_weights <- function(p, ell) {
   1 / choose(p, ell) / (p - ell)
 }
@@ -21,7 +21,7 @@ shapley_weights <- function(p, ell) {
 #'
 #' @param p Number of features.
 #' @param feature_names Feature names.
-#' @returns (2^p x p) matrix of all on-off vectors.
+#' @returns An integer (2^p x p) matrix of all on-off vectors of length `p`.
 exact_Z <- function(p, feature_names) {
   Z <- as.matrix(do.call(expand.grid, replicate(p, 0:1, simplify = FALSE)))
   colnames(Z) <- feature_names
@@ -30,7 +30,7 @@ exact_Z <- function(p, feature_names) {
 
 #' SHAP values for one row
 #'
-#' Calculates permutation SHAP for a single row.
+#' Calculates permutation SHAP values for a single row.
 #'
 #' @noRd
 #' @keywords internal
@@ -83,20 +83,19 @@ shapley_formula <- function(Z, vz) {
 #' Masker
 #'
 #' For each on-off vector (rows in `Z`), the (weighted) average prediction is returned.
-#' Originally implemented in {kernelshap}.
+#' Modified from {kernelshap}.
 #'
 #' @noRd
 #' @keywords internal
 #'
 #' @inheritParams permshap
-#' @param X Replicated row to be explained.
-#' @param bg Replicated background data.
-#' @param Z Matrix with on-off values.
-#' @returns Matrix with vz values.
+#' @param X Row to be explained stacked m*n_bg times.
+#' @param bg Background data stacked m times.
+#' @param Z A (m x p) matrix with on-off values.
+#' @returns A (m x K) matrix with vz values.
 get_vz <- function(X, bg, Z, object, pred_fun, bg_w, ...) {
   m <- nrow(Z)
   not_Z <- !Z
-  rownames(not_Z) <- NULL
   n_bg <- nrow(bg) / m   # because bg was replicated m times
 
   # Replicate not_Z, so that X, bg, not_Z are all of dimension (m*n_bg x p)
@@ -121,7 +120,6 @@ get_vz <- function(X, bg, Z, object, pred_fun, bg_w, ...) {
     # w is recycled over rows and columns
     out <- rowsum(preds * bg_w, group = g, reorder = FALSE) / sum(bg_w)
   }
-  rownames(out) <- rownames(Z)
   out
 }
 
@@ -212,9 +210,9 @@ align_pred <- function(x) {
   x
 }
 
-#' head of List
+#' Head of List Elements
 #'
-#' Shows top n rows of each element in the input list.
+#' Returns top n rows of each element in the input list.
 #' Originally implemented in {kernelshap}.
 #'
 #' @noRd
@@ -222,7 +220,7 @@ align_pred <- function(x) {
 #'
 #' @param x A list or a matrix-like.
 #' @param n Number of rows to show.
-#' @returns First rows of each element in the input list.
+#' @returns List of first rows of each element in the input.
 head_list <- function(x, n = 6L) {
   if (!is.list(x)) utils::head(x, n) else lapply(x, utils::head, n)
 }
@@ -234,8 +232,8 @@ head_list <- function(x, n = 6L) {
 #' @noRd
 #' @keywords internal
 #'
-#' @param Z A matrix.
-#' @returns A vector.
+#' @param Z A (n x p) matrix.
+#' @returns A length n vector.
 rowpaste <- function(Z) {
   do.call(paste0, asplit(Z, 2L))
 }

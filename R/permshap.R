@@ -4,7 +4,6 @@
 #' respect to a background dataset.
 #'
 #' @importFrom foreach %dopar%
-#'
 #' @param object Fitted model object.
 #' @param X \eqn{(n \times p)} matrix or `data.frame` with rows to be explained.
 #'   The columns should only represent model features, not the response

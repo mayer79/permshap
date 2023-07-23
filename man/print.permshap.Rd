@@ -17,7 +17,7 @@
 Invisibly, the input is returned.
 }
 \description{
-Prints the first two rows of the matrix (or matrices) of SHAP values.
+Prints the first \code{n} rows of the matrix (or matrices) of SHAP values.
 }
 \examples{
 fit <- lm(Sepal.Length ~ ., data = iris)
