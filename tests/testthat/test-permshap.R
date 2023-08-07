@@ -6,12 +6,20 @@ x <- c("Petal.Width", "Species", "Petal.Length")
 preds <- unname(predict(fit, iris))
 s <- permshap(fit, iris[c(1L, 51L, 101L), x], bg_X = iris, verbose = FALSE)
 
-test_that("Baseline equals average prediction on background data in exact mode", {
+test_that("Baseline equals average prediction on background data", {
   expect_equal(s$baseline, mean(iris$Sepal.Length))
 })
 
-test_that("SHAP + baseline = prediction for exact mode", {
+test_that("SHAP + baseline = prediction", {
   expect_equal(rowSums(s$S) + s$baseline, preds[c(1L, 51L, 101L)])
+})
+
+test_that("verbose is chatty", {
+  capture_output(
+    expect_message(
+      permshap(fit, iris[c(1L, 51L, 101L), x], bg_X = iris, verbose = TRUE)
+    )
+  )
 })
 
 test_that("large background data cause warning", {
@@ -159,7 +167,8 @@ preds <- unname(pred_fun(fit, X))
 
 test_that("Matrix input is fine with case weights", {
   s <- permshap(
-    fit, X[1:3, ],
+    fit,
+    X[1:3, ],
     pred_fun = pred_fun,
     bg_X = X,
     bg_w = iris$Sepal.Width,

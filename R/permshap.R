@@ -101,6 +101,10 @@ permshap.default <- function(object, X, bg_X, pred_fun = stats::predict,
     stop("If X is a matrix, feature_names must equal colnames(X)")
   }
 
+  if (verbose) {
+    message("Exact permutation SHAP values")
+  }
+
   # Baseline
   bg_preds <- align_pred(pred_fun(object, bg_X[, colnames(X), drop = FALSE], ...))
   v0 <- wcolMeans(bg_preds, bg_w)            # Average pred of bg data: 1 x K
