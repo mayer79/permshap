@@ -7,6 +7,12 @@
 
 <!-- badges: end -->
 
+## READ THIS FIRST
+
+***The project has been integrated into the {kernelshap} package on CRAN. The code will run 1:1 from that library.***
+
+This repository is likely to be removed soon.
+
 ## Overview
 
 This package crunches exact permutation SHAP values of any model with up to 16 features. Multi-output regressions and models with case-weights are handled at no additional cost.
